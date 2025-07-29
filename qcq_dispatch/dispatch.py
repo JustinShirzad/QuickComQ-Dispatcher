@@ -5,7 +5,7 @@ class dispatch(Process):
     def __init__(self, id = 0, q=None):
         super().__init__()
         self.id = id
-        self.q = self.setup_q()
+        self.q = self.setup_q(q)
         self.command = None
         self.announce_initialisation()
 
@@ -35,11 +35,11 @@ class dispatch(Process):
         if robot_id == id:
             self.run_command(command, run_timer)
     
-    # Dummy process to be changed later, currently just prints command
-    def run_command(command, run_timer):
+    # Dummy function to be changed later, currently just prints command
+    def run_command(self, command, run_timer):
         start_time = time.time()
 
-        while time.time - start_time < run_timer:
+        while (time.time - start_time < run_timer) and self.q.empty():
             print(command)
 
     
