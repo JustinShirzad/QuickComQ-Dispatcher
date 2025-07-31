@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qcq_dispatch"
+requires-python = ">=3.9"
+dependencies = [
+    
+    "pygame",
+    "PyYAML"
+]
+
+dynamic = [
+    "version"
+]
+
+[tools.setuptools.packages.find]
+where = ["src"]
+
+[tools.setuptools.dynamic]
+version = {attr = "qcq_dispatch.__version__"}
