@@ -6,7 +6,6 @@ build-backend = "setuptools.build_meta"
 name = "qcq_dispatch"
 requires-python = ">=3.9"
 dependencies = [
-    
     "pygame",
     "PyYAML"
 ]
