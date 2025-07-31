@@ -8,12 +8,12 @@ class dispatch(Process):
         self.current_command = None
         self.command_start_time = None
         self.announce_initialisation() #Review : this maybe useful 
-        self.reset_command()
+        # self.reset_command() #REVIEW : uh I added robot id so don't do this 
         
         ## REVIEW : use a dictionary as a mapping 
-        # self.robot_commands = {
-        #     1: {"command": "0 0 0 0 0 0", "runtime": 3, "start_time":0}
-        # }
+        self.robot_commands = {
+            1: {"command": "0 0 0 0 0 0", "runtime": 3, "start_time":0}
+        }
         ## REVIEW or we create a new class
         # import dataclass 
         # @dataclass
@@ -49,33 +49,39 @@ class dispatch(Process):
         if not self.q.empty():
             queue_item = self.q.get_nowait()
             command, runtime = queue_item # REVIEW : nice 
-            
-            if self.check_id(self.id, command):
-                self.current_command = (command, runtime) # REVIEW : maybe change this name to something like : packet
-                self.command_start_time = time.time() # REVIEW : using self.current_command and self.command_start_time are iffy
-                print(f"[Robot {self.id}] New command: '{command}' for duration: {runtime}s") # REVIEW : good
+            ## REVIEW : Create a new function to add to dictionary 
+            self.add(command,runtime)
+            # if self.check_id(robot_id, command):
+                # self.current_command = (command, runtime) # REVIEW : maybe change this name to something like : packet
+                # self.command_start_time = time.time() # REVIEW : using self.current_command and self.command_start_time are iffy
+                # print(f"[Robot {self.id}] New command: '{command}' for duration: {runtime}s") # REVIEW : good
 
+    def add(self,command,run_time):
+        self.robot_commands[command.robot_id] = {"command":command, "runtime" : run_time, "start_time":0}
+        # COMMENT : this will also overwrite any existing previous one
+        
+        
     # Check if the command has expired
     def check_command_timeout(self):
         # if self.current_command is not None:
             # command, runtime = self.current_command
             # elapsed_time = time.time() - self.command_start_time # REVIEW : hm
-        for robot_id, packet in self.robot_commands:
-            print(f"{robot_id=}, {packet.command=}, {packet.runtime=},{packet.start_time=}")
-            if packet.start_time == 0 :
-                packet.start_time = time.time() 
+        for robot_id,packet in self.robot_commands.items():
+            print(f"{robot_id=}, {packet["command"]=}, {packet["runtime"]=},{packet["start_time"]=}")
+            if packet["start_time"] == 0 :
+                packet["start_time"] = time.time() 
             
             # send the packet here
             
-            if packet.start_time - time.time() >= packet.runtime:
-                print(f"[Robot {self.id}] Command expired, sending RESET")
-                self.reset_command() # REVIEW : good, but I have added these changes to make it work with dictionary, I hope it helps
+            if packet["start_time"] - time.time() >= packet["runtime"]:
+                # print(f"[Robot {self.id}] Command expired, sending RESET")
+                self.reset_command(robot_id) # REVIEW : good, but I have added these changes to make it work with dictionary, I hope it helps
 
     # Set a do nothing command to be acted on until a new command replaces it
     def reset_command(self,robot_id):
-        reset_command = f"{robot_id} 0 0 0 0 0 0" # REVIEW : nice and maybe can work, but try to see if you can use RobotCommand
+        new_command = f"{robot_id} 0 0 0 0 0 0" # REVIEW : nice and maybe can work, but try to see if you can use RobotCommand
         print(f"{robot_id=} has been reset")
-        self.robot_command[robot_id] = {"command": reset_command, "runtime": 9999999, "start_time":0}
+        self.robot_command[robot_id] = {"command": new_command, "runtime": 9999999, "start_time":0}
         
         # print(f"[Robot {self.id}] Using reset command: '{reset_command}'")
         # self.current_command = (reset_command, 9999999999999,0) # REVIEW : hm ok
