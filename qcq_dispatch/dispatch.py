@@ -9,6 +9,7 @@ class dispatch(Process):
         self.current_command = None
         self.command_start_time = None
         self.announce_initialisation()
+        self.reset_command()
 
     # Announce that the dispatcher has been created
     def announce_initialisation(self):

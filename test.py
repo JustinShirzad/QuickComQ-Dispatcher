@@ -4,7 +4,7 @@ import random
 import time
 
 def create_queue_entry():
-    random_id = random.randint(1, 10)
+    random_id = random.randint(1, 3)
     random_length = random.randrange(1, 10)
 
     command = f"{random_id} 1 1 1 1 1 1"
@@ -14,17 +14,15 @@ def create_queue_entry():
 
 def dummy_process(id, queue):
     dispatcher = dispatch(id=id, q=queue)
-    dispatcher.process_q
+    dispatcher.process_q()
 
 if __name__ == "__main__":
     test_queue = Queue()
 
     a = Process(target=dummy_process, args=(1, test_queue))
-    b = Process(target=dummy_process, args=(2, test_queue))
     
     a.start()
-    b.start()
-    
+
     # Add some test commands to the queue after a random delay
     for _ in range(30):
         entry = create_queue_entry()
@@ -33,9 +31,7 @@ if __name__ == "__main__":
         time.sleep(random_sleep_time)
     
     a.terminate()
-    b.terminate()
     
     a.join()
-    b.join()
     
-    print("All processes completed.")
+    print("\nAll processes completed.")
