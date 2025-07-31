@@ -1,12 +1,27 @@
 import random
+from qcq_dispatch.network.robotCommand import RobotCommand
 
 
 def create_input():
-    random_id = random.randint(1, 3)
-    run_time = random.randrange(1, 10)
+    random_id = random.randint(1, 3) # good
+    run_time = random.randrange(1, 10) #good
+    
+    random_vx = random.randint(0,2)
 
-    command = f"{random_id} 1 1 1 1 1 1"
-    queue_tuple = (command, run_time)
+    command = RobotCommand(robot_id=random_id,vx=random_vx) #changed this
 
-    return queue_tuple
+    return command,run_time #this creates tuple automatically 
 
+
+def test_input_gen():
+    command,runtime = create_input()
+    print(f"{command=}")
+    print(f"{runtime=}")
+        
+def test_input_gen2():
+    packet = create_input()
+    print(f"{packet=}")
+
+# tests
+test_input_gen()
+test_input_gen2()
