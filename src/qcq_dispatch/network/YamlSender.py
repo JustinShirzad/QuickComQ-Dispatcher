@@ -10,7 +10,7 @@ import ast
 import logging
 
 from qcq_dispatch.network.robotCommand import RobotCommand
-from qcq_dispatch.network.baseUDP import BaseSocket, UDP
+from qcq_dispatch.network.baseUDP import BaseSocket
 import yaml
 try:
     from yaml import CLoader as Loader
