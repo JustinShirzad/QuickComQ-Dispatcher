@@ -1,4 +1,3 @@
-
 """ SENDER
 Sender includes :
     1. Sender            - UDP socket for server.
@@ -8,11 +7,10 @@ Raises:
     NotImplementedError: if user try to use an empty function
 """
 import ast
-
 import logging
 
 from qcq_dispatch.network.robotCommand import RobotCommand
-from qcq_dispatch.network.baseUDP import BaseSocket,UDP
+from qcq_dispatch.network.baseUDP import BaseSocket, UDP
 import yaml
 try:
     from yaml import CLoader as Loader
@@ -28,32 +26,22 @@ class YamlSender(BaseSocket):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         super().__init__()
 
+    def send_command(self, command: RobotCommand):
+        if not isinstance(command, RobotCommand):
+            raise TypeError("only RobotCommand Object Allowed")
         
-    
-    def send_command(self, command_list:RobotCommand):
-        """
-        Sending command via UDP
+        robot_id = str(command.robot_id)
+        destination = self.robot[robot_id]["ip"]
+        port = self.robot[robot_id]["port"]
+        print(f"[YAMLSender] : sending to robot :{robot_id} : {command} @ ({destination}, {port})")
+        encoded_command: bytes = command.encode()
+        self.sock.sendto(encoded_command, (destination, port))
 
-        Args:
-            command (RobotCommand): Command that wants to be sent
-            d_addr (tuple[str,int]): destination address to be delivered to 
-            
-        Params: 
-            encoded_Command(bytes): see Command.encode
-        Exceptions:
-            TypeError : Only Command or byte objects allowed
-        """
-
-        for command in command_list:
-            robot_id = str(command.robot_id)
-            destination = self.robot[robot_id]["ip"]
-            port = self.robot[robot_id]["port"]
-            print(robot_id,destination,port, command)
-            enocded_command:bytes = command.encode()
-            self.sock.sendto(enocded_command, (destination, port))
-            
-
-if __name__ == "__main__" :
+if __name__ == "__main__":
     s = YamlSender()
-    list_cmd = [RobotCommand(1),RobotCommand(2),RobotCommand(3),RobotCommand(4)]
-    s.send_command(list_cmd)
+    # Test with individual commands
+    cmd1 = RobotCommand(robot_id=1, vx=1.0, vy=0.0, w=0.0, kick=0, dribble=0)
+    cmd2 = RobotCommand(robot_id=2, vx=0.0, vy=1.0, w=0.0, kick=0, dribble=0)
+    
+    s.send(cmd1)
+    s.send(cmd2)

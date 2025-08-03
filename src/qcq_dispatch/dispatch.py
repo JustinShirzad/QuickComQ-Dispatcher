@@ -1,109 +1,67 @@
 from multiprocessing import Process, Queue
+from qcq_dispatch.network.robotCommand import RobotCommand
+from qcq_dispatch.network.YamlSender import YamlSender
 import time
 
 class dispatch(Process):
-    def __init__(self, q):  #REVIEW : I don't think we need ID in this. we handle em all
+    def __init__(self, q):
         super().__init__()
-        self.q = q # REVIEW : q must be an input argument
-        self.current_command = None
-        self.command_start_time = None
-        self.announce_initialisation() #Review : this maybe useful 
-        # self.reset_command() #REVIEW : uh I added robot id so don't do this 
-        
-        ## REVIEW : use a dictionary as a mapping 
-        self.robot_commands = {
-            1: {"command": "0 0 0 0 0 0", "runtime": 3, "start_time":0}
-        }
-        ## REVIEW or we create a new class
-        # import dataclass 
-        # @dataclass
-        # class RobotTask:
-        #     command: RobotCommand
-        #     runtime: int
-        # maybe we can add address to this, but keep it like this for now. 
+        self.q = q
+        self.running_commands = {}
+        self.announce_initialisation()
+        self.y_sender = YamlSender()
 
     # Announce that the dispatcher has been created
     def announce_initialisation(self):
-        # print(f"Dispatcher for ID: {self.id} has been created!")
-        # REVIEW pass for now
-        pass
-        # REVIEW : add a sender object here ! then you can see the magic happen
+        print("Multi-robot dispatcher initialized!")
 
-    # Setup the queue, if not provided, create a new one for testing     # REVIEW : do not create Queue in here,  this This will break the code
-    # def setup_q(self, q):
-    #     if q is not None:
-    #         return q
-    #     else:
-    #         return Queue()    
-
-
-    # Main processing loop   # REVIEW : nice loop
+    # Main processing loop
     def process_q(self):
         while True:
-            self.check_new_commands() 
-            self.handle_command()
+            self.check_new_commands()
+            self.handle_commands()
             self.check_command_timeout()
 
-    # Get the next command from the queue and keep it if it's id matches
+    # Get the next command from the queue and add it
     def check_new_commands(self):
         if not self.q.empty():
             queue_item = self.q.get_nowait()
-            command, runtime = queue_item # REVIEW : nice 
-            ## REVIEW : Create a new function to add to dictionary 
-            self.add(command,runtime)
-            # if self.check_id(robot_id, command):
-                # self.current_command = (command, runtime) # REVIEW : maybe change this name to something like : packet
-                # self.command_start_time = time.time() # REVIEW : using self.current_command and self.command_start_time are iffy
-                # print(f"[Robot {self.id}] New command: '{command}' for duration: {runtime}s") # REVIEW : good
+            command, runtime = queue_item
+            self.add(command, runtime)
 
-    def add(self,command,run_time):
-        self.robot_commands[command.robot_id] = {"command":command, "runtime" : run_time, "start_time":0}
-        # COMMENT : this will also overwrite any existing previous one
+    # Add a new command to the running commands and replace exisiting commands for the robot with the same ID
+    def add(self, command, run_time):
+        robot_id = command.robot_id
+        self.running_commands[robot_id] = {"command": command, "runtime": run_time, "start_time": time.time()}
+        print(f"[Robot {robot_id}] New command added for {run_time}s")
         
-        
-    # Check if the command has expired
+    # Check if any commands have expired
     def check_command_timeout(self):
-        # if self.current_command is not None:
-            # command, runtime = self.current_command
-            # elapsed_time = time.time() - self.command_start_time # REVIEW : hm
-        for robot_id,packet in self.robot_commands.items():
-            print(f"{robot_id=}, {packet["command"]=}, {packet["runtime"]=},{packet["start_time"]=}")
-            if packet["start_time"] == 0 :
-                packet["start_time"] = time.time() 
+        expired_commands = []
+        
+        for robot_id, packet in self.running_commands.items():
+            elapsed_time = time.time() - packet["start_time"]
             
-            # send the packet here
-            
-            if packet["start_time"] - time.time() >= packet["runtime"]:
-                # print(f"[Robot {self.id}] Command expired, sending RESET")
-                self.reset_command(robot_id) # REVIEW : good, but I have added these changes to make it work with dictionary, I hope it helps
+            if elapsed_time >= packet["runtime"]:
+                print(f"[Robot {robot_id}] Command expired after {elapsed_time:.2f}s")
+                expired_commands.append(robot_id)
 
-    # Set a do nothing command to be acted on until a new command replaces it
-    def reset_command(self,robot_id):
-        new_command = f"{robot_id} 0 0 0 0 0 0" # REVIEW : nice and maybe can work, but try to see if you can use RobotCommand
-        print(f"{robot_id=} has been reset")
-        self.robot_command[robot_id] = {"command": new_command, "runtime": 9999999, "start_time":0}
-        
-        # print(f"[Robot {self.id}] Using reset command: '{reset_command}'")
-        # self.current_command = (reset_command, 9999999999999,0) # REVIEW : hm ok
-        # self.command_start_time = time.time()
-        
+        for robot_id in expired_commands:
+            self.reset_command(robot_id)
 
+    # Set a do nothing command for the specified robot
+    def reset_command(self, robot_id):
+        reset_command = RobotCommand(robot_id=robot_id, vx=0, vy=0, w=0, kick=0, dribble=0)
+        print(f"[Robot {robot_id}] Reset to idle command")
+        
+        self.running_commands[robot_id] = {"command": reset_command, "runtime": 9999999, "start_time": time.time()}
 
-    # Check if the command is for this robot
-    def check_id(self, id, command):
-        # robot_id = command.split(" ")[0]  # REVIEW : nice and maybe can work, but try to see if you can use RobotCommand
-        robot_id = command.robot_id # Review : here ! 
-        if robot_id == str(id):
-            return True
-        return False
-    
-    # Handles the command
-    def handle_command(self):
-        print(self.current_command)  # REVIEW : ok, this works :) but try maybe : sending command to robot 1 for X seconds (this is the elapsed time)
+    # Handle all active commands for all robots
+    def handle_commands(self):
+        for robot_id, packet in self.running_commands.items():
+            command = packet["command"]
+            self.y_sender.send_command(command)
         
-        # REVIEW : I ran once, can we not show the 0,0,0,0,0,0, 9999999999 forever ?  
-        
-        
-def run_dispatcher(q) :
+def run_dispatcher(q):
     d = dispatch(q=q)
     d.process_q()
