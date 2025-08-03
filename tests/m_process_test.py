@@ -1,4 +1,4 @@
-
+## to test with YAML Sender (that use relative pathing) run it at 1 level up i.e. python3 ./tests/m_processing_test.py
 from multiprocessing import Queue,Process
 from qcq_dispatch.dispatch import run_dispatcher
 from qcq_dispatch.generate_packet import generate_w_interval

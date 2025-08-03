@@ -19,12 +19,13 @@ except ImportError as e:
 
 import socket
           
-class YamlSender(BaseSocket):
+class YamlSender():
     def __init__(self):
-        file = open("src/TeamControl/utils/ipconfig.yaml", "r")
+        # addr = "src/TeamControl/utils/ipconfig.yaml"
+        addr = "src/qcq_dispatch/ipconfig.yaml"
+        file = open(addr, "r")
         self.robot = yaml.load(file, Loader)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        super().__init__()
 
     def send_command(self, command: RobotCommand):
         if not isinstance(command, RobotCommand):
@@ -43,5 +44,5 @@ if __name__ == "__main__":
     cmd1 = RobotCommand(robot_id=1, vx=1.0, vy=0.0, w=0.0, kick=0, dribble=0)
     cmd2 = RobotCommand(robot_id=2, vx=0.0, vy=1.0, w=0.0, kick=0, dribble=0)
     
-    s.send(cmd1)
-    s.send(cmd2)
+    s.send_command(cmd1)
+    s.send_command(cmd2)
